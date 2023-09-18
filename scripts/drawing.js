@@ -1,82 +1,78 @@
-const drawing_area = document.querySelector(`.display`);
+const drawing_area = document.querySelector(`#display`);
+const ctx = drawing_area.getContext("2d");
 
-const graphics = new PIXI.Graphics();
-const app = new PIXI.Application({ antialias: true, resizeTo: drawing_area });
 
-drawing_area.appendChild(app.view);
+function projection(vertex, distance_to_screen, number) {
+    let x = ((vertex[number][0] * distance_to_screen) / Math.abs(vertex[number][2] + distance_to_screen)) * 50 + 250
+    let y = ((vertex[number][1] * distance_to_screen) / Math.abs(vertex[number][2] + distance_to_screen)) * 50 + 250
 
-export function line (x1, y1, x2, y2, color, thicness) {
-    // Set line`s start
-    graphics.position.set(x1 , y1);
-    // thicness and color of the line
-    graphics.lineStyle(thicness, color)
-    // end of a line
-        .lineTo(x2 , y2);
-    app.stage.addChild(graphics);
+    x = x.toFixed(2)
+    y = y.toFixed(2)
+
+    return [x,y]
 }
 
-const vertex_of_tetrahedron = [
-    [0,0,0],
-    [2,0,3.5],
-    [4,0,0],
-    [2,3,1.7]
-]
+function rotation_x(vertex, angle) {
+    for(let num = 0; num < vertex.length; num++) {
+        let x_new =  vertex[num][0]
+        let y_new =  vertex[num][1] * Math.cos(angle) -  vertex[num][2] * Math.sin(angle)
+        let z_new =  vertex[num][1] * Math.sin(angle) +  vertex[num][2] * Math.cos(angle)
 
-const edges_of_tetrahedron = [
-    [0,1],
-    [0,2],
-    [0,3],
-    [1,2],
-    [1,3],
-    [2,3]
-]
-
-
-export function projection(vertex, k) {
-    let projection = []
-
-    let x = null
-    let y = null
-
-    for (let i = 0; i < vertex.length; i++) {
-        y = k * vertex[i][1] / (vertex[i][2] + k)
-        x = k * vertex[i][0] / (vertex[i][2] + k)
-
-        x = x.toFixed(2)
-        y = y.toFixed(2)
-
-        projection.push([])
-        projection[i].push(x,y)
-    }
-
-    return projection
-}
-
-function scale(vertex, times) {
-    for (let i = 0; i < vertex.length; i++) {
-        for (let j = 0; j < vertex[i].length; j++) {
-            vertex[i][j] *= times
-        }
+        vertex[num][0] = x_new
+        vertex[num][1] = y_new
+        vertex[num][2] = z_new
     }
     return vertex
-}
+} 
 
-export function draw_tetrahedron(k) {
-    let projected_vertex = scale(projection(vertex_of_tetrahedron, k), 1)
+function rotation_y(vertex, angle) {
+    for(let num = 0; num < vertex.length; num++) {
+        let x_new =  vertex[num][2] * Math.sin(angle) +  vertex[num][0] * Math.cos(angle)
+        let y_new =  vertex[num][1]
+        let z_new =  vertex[num][2] * Math.cos(angle) -  vertex[num][0] * Math.sin(angle)
 
-    for (let i = 0; i < edges_of_tetrahedron.length; i++) {
-        let start_point = edges_of_tetrahedron[i][0]
-        let end_point = edges_of_tetrahedron[i][1]
-
-        let x_start = projected_vertex[start_point][0]
-        let y_start = projected_vertex[start_point][1]
-
-        let x_end = projected_vertex[end_point][0]
-        let y_end = projected_vertex[end_point][1]
-
-        line(x_start, y_start, x_end, y_end, 0xc629, 2)
-
-        console.log(x_start, y_start, x_end, y_end)
-
+        vertex[num][0] = x_new
+        vertex[num][1] = y_new
+        vertex[num][2] = z_new
     }
+    return vertex
+} 
+
+function rotation_z(vertex, angle) {
+    for(let num = 0; num < vertex.length; num++) {
+        let x_new =  vertex[num][0] * Math.cos(angle) -  vertex[num][1] * Math.cos(angle)
+        let y_new =  vertex[num][0] * Math.sin(angle) +  vertex[num][1] * Math.cos(angle)
+        let z_new =  vertex[num][2]
+        
+        vertex[num][0] = x_new
+        vertex[num][1] = y_new
+        vertex[num][2] = z_new
+    }
+    return vertex
+} 
+
+function rotation(vertex, angle_x, angle_y, angle_z) {
+    vertex = rotation_x(vertex, angle_x)
+    vertex = rotation_y(vertex, angle_y)
+    vertex = rotation_z(vertex, angle_z)
+
+    return vertex
+} 
+
+export function drawing(vertex, distance_to_screen, edges) {
+    ctx.beginPath();
+    for (let num = 0; num < edges.length; num++) {
+        const start = rotation(projection(vertex, distance_to_screen, edges[num][0]), 0.01, 0.01, 0.01)
+        const end = rotation(projection(vertex, distance_to_screen, edges[num][1]), 0.01, 0.01, 0.01)
+        
+        // const start = projection(vertex, distance_to_screen, edges[num][0])
+        // const end = projection(vertex, distance_to_screen, edges[num][1])
+
+        console.log('start = ', start, 'end = ', end)
+
+        ctx.moveTo(start[0], start[1])
+        ctx.lineTo(end[0], end[1])
+    
+    }
+    ctx.stroke()
 }
